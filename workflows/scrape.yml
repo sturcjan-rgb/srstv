@@ -1,0 +1,40 @@
+name: Aktualizace zápasů Sršni TV
+
+on:
+  schedule:
+    # Každé 2 hodiny. Syntaxe je v UTC (v létě = SELČ - 2h, v zimě SEČ - 1h).
+    - cron: "0 */2 * * *"
+  workflow_dispatch: {} # umožní i ruční spuštění přes záložku Actions na GitHubu
+
+permissions:
+  contents: write
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repozitáře
+        uses: actions/checkout@v4
+
+      - name: Nastavení Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Instalace závislostí
+        run: npm install
+
+      - name: Spuštění scraperu
+        run: node scraper.mjs
+
+      - name: Uložení změn (pokud nějaké jsou)
+        run: |
+          git config user.name "srsni-tv-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add data/matches.json
+          if git diff --staged --quiet; then
+            echo "Žádné změny v datech zápasů."
+          else
+            git commit -m "chore: aktualizace zápasů Sršni TV"
+            git push
+          fi
