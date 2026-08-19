@@ -17,11 +17,32 @@
 import fs from "node:fs";
 import * as cheerio from "cheerio";
 
-const LEAGUE_URL = "https://www.tvcom.cz/Zapasy/Sport-Basketbal/Soutez-Kooperativa-NBL/";
 const BASE = "https://www.tvcom.cz";
 const TEAM_MARK = "Sršni";
 const OUT_PATH = "data/matches.json";
 const REQUEST_DELAY_MS = 500; // ať to na tvcom nebušíme zbytečně rychle
+
+// tvcom defaultně na "holé" adrese ukazuje jen AKTUÁLNÍ sezónu — jakmile se
+// sezóna přehoupne, staré zápasy z ní zmizí z výchozí stránky a scraper by
+// se k nim už nikdy nedostal (přesně tohle se stalo při přechodu na
+// 2026/2027 — 31 z 35 zápasů 2025/2026 zůstalo napořád bez embedu).
+// Řešení: scraper prochází i explicitní adresu MINULÉ sezóny, dokud se jí
+// nepodaří dohledat embed. Obě adresy se počítají dynamicky podle
+// aktuálního data, takže se kód nemusí každý rok ručně upravovat.
+function seasonSlug(now, seasonsBack) {
+  const y = now.getFullYear();
+  const m = now.getMonth() + 1; // 1-12
+  let startYear = m >= 8 ? y : y - 1; // sezóna běží srpen -> červenec
+  startYear -= seasonsBack;
+  return `${startYear}-${startYear + 1}`;
+}
+
+function buildLeagueUrls(now) {
+  return [0, 1].map(
+    (back) =>
+      `${BASE}/Zapasy/Sport-Basketbal/Soutez-Kooperativa-NBL/Sezona-${seasonSlug(now, back)}/`
+  );
+}
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -100,17 +121,23 @@ function parseMatchAnchor(href, rawText) {
   };
 }
 
-async function getSrsniMatches() {
-  const html = await fetchHtml(LEAGUE_URL);
-  const $ = cheerio.load(html);
-
+async function getSrsniMatches(leagueUrls) {
   const byId = new Map();
-  $('a[href*="/Zapas/Sport-Basketbal/Soutez-Kooperativa-NBL/"]').each((_, el) => {
-    const href = $(el).attr("href");
-    const text = $(el).text();
-    const parsed = parseMatchAnchor(href, text);
-    if (parsed) byId.set(parsed.id, parsed);
-  });
+
+  for (const url of leagueUrls) {
+    console.log(`  … prochází ${url}`);
+    const html = await fetchHtml(url);
+    const $ = cheerio.load(html);
+
+    $('a[href*="/Zapas/Sport-Basketbal/Soutez-Kooperativa-NBL/"]').each((_, el) => {
+      const href = $(el).attr("href");
+      const text = $(el).text();
+      const parsed = parseMatchAnchor(href, text);
+      if (parsed) byId.set(parsed.id, parsed);
+    });
+
+    await sleep(REQUEST_DELAY_MS);
+  }
 
   return [...byId.values()];
 }
@@ -142,9 +169,11 @@ function toTimestamp(m) {
 }
 
 async function main() {
-  console.log(`Stahuji rozpis Maxa NBL: ${LEAGUE_URL}`);
-  const found = await getSrsniMatches();
-  console.log(`Nalezeno ${found.length} zápasů Sršňů na tvcom.cz (aktuální sezóna)`);
+  const now = new Date();
+  const leagueUrls = buildLeagueUrls(now);
+  console.log(`Stahuji rozpis Maxa NBL (aktuální + minulá sezóna):`);
+  const found = await getSrsniMatches(leagueUrls);
+  console.log(`Nalezeno ${found.length} zápasů Sršňů na tvcom.cz`);
 
   // Start: vše, co už máme uložené (klidně i z dřívějších sezón).
   const merged = loadExisting();
