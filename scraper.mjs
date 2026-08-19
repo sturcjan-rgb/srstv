@@ -1,11 +1,15 @@
 // Sršni TV — scraper
 //
 // Co dělá:
-// 1. Stáhne stránku Maxa NBL na tvcom.cz (celý sezónní rozpis, server-rendered HTML).
+// 1. Stáhne stránku Maxa NBL na tvcom.cz (server-rendered HTML, aktuální sezóna).
 // 2. Vyfiltruje jen zápasy Sršňů (podle "Sršni" v názvu týmu).
 // 3. U zápasů, které ještě nemáme vyřešené (bez embed GUID), stáhne detail
 //    zápasu a zkusí z něj vytáhnout <iframe src="//embed.tvcom.cz/{GUID}/">.
-// 4. Uloží výsledek do data/matches.json — přesně ve formátu, který čte web.
+// 4. VÝSLEDEK SLOUČÍ s tím, co už v data/matches.json bylo — nikdy ho
+//    celý nepřepisuje. Tvcom defaultně ukazuje jen aktuální sezónu, takže
+//    bez sloučení by scraper při každém přechodu na novou sezónu tiše
+//    smazal historii z té předchozí. Každému zápasu navíc přiřadí "season"
+//    (např. "2025/2026"), podle kterého web nabízí přepínač sezón.
 //
 // Spouští se přes GitHub Actions (viz .github/workflows/scrape.yml), žádný
 // ruční krok není potřeba. Lokálně jde spustit přes: node scraper.mjs
@@ -32,6 +36,16 @@ async function fetchHtml(url) {
     throw new Error(`HTTP ${res.status} pro ${url}`);
   }
   return await res.text();
+}
+
+// "5. 5. 2026" / "5" -> "2025/2026" (sezóna běží srpen-červenec)
+function computeSeason(dateStr) {
+  const [day, month, year] = dateStr.split(".").map((s) => parseInt(s.trim(), 10));
+  return month >= 8 ? `${year}/${year + 1}` : `${year - 1}/${year}`;
+}
+
+function matchKey(m) {
+  return `${m.date}|${m.time}|${m.home}|${m.away}`;
 }
 
 // Vyparsuje jeden <a href="/Zapas/Sport-Basketbal/Soutez-Kooperativa-NBL/...">
@@ -107,18 +121,18 @@ async function getEmbedId(matchUrl) {
   return m ? m[1] : null;
 }
 
-function loadPrevious() {
-  if (!fs.existsSync(OUT_PATH)) return new Map();
+// Načte, co už v repu máme — napříč VŠEMI dosud viděnými sezónami.
+// Klíčováno stejně jako nová data, aby šlo bezpečně přepisovat/doplňovat.
+function loadExisting() {
+  const map = new Map();
+  if (!fs.existsSync(OUT_PATH)) return map;
   try {
     const prev = JSON.parse(fs.readFileSync(OUT_PATH, "utf8"));
-    const map = new Map();
-    for (const m of prev) {
-      map.set(`${m.date}|${m.time}|${m.home}|${m.away}`, m);
-    }
-    return map;
-  } catch {
-    return new Map();
+    for (const m of prev) map.set(matchKey(m), m);
+  } catch (e) {
+    console.warn(`Nepodařilo se přečíst existující ${OUT_PATH}, začínám od nuly: ${e.message}`);
   }
+  return map;
 }
 
 function toTimestamp(m) {
@@ -130,16 +144,16 @@ function toTimestamp(m) {
 async function main() {
   console.log(`Stahuji rozpis Maxa NBL: ${LEAGUE_URL}`);
   const found = await getSrsniMatches();
-  console.log(`Nalezeno ${found.length} zápasů Sršňů na tvcom.cz`);
+  console.log(`Nalezeno ${found.length} zápasů Sršňů na tvcom.cz (aktuální sezóna)`);
 
-  const previous = loadPrevious();
-  const result = [];
+  // Start: vše, co už máme uložené (klidně i z dřívějších sezón).
+  const merged = loadExisting();
+  console.log(`V repu už bylo ${merged.size} zápasů (napříč sezónami)`);
 
   for (const m of found) {
-    const key = `${m.date}|${m.time}|${m.home}|${m.away}`;
-    const prevMatch = previous.get(key);
-
-    let embed = prevMatch?.embed ?? null;
+    const key = matchKey(m);
+    const existing = merged.get(key);
+    let embed = existing?.embed ?? null;
 
     if (!embed) {
       try {
@@ -150,24 +164,31 @@ async function main() {
       }
     }
 
-    result.push({
+    merged.set(key, {
       date: m.date,
       time: m.time,
       home: m.home,
       away: m.away,
       phase: m.phase,
       us: m.us,
+      season: computeSeason(m.date),
       ...(embed ? { embed } : {}),
     });
   }
 
-  result.sort((a, b) => toTimestamp(b) - toTimestamp(a));
+  // Starším záznamům (z doby před zavedením "season") sezónu dopočítáme.
+  for (const [key, m] of merged) {
+    if (!m.season) merged.set(key, { ...m, season: computeSeason(m.date) });
+  }
+
+  const result = [...merged.values()].sort((a, b) => toTimestamp(b) - toTimestamp(a));
 
   fs.mkdirSync("data", { recursive: true });
   fs.writeFileSync(OUT_PATH, JSON.stringify(result, null, 2) + "\n", "utf8");
 
   const withVideo = result.filter((m) => m.embed).length;
-  console.log(`Uloženo ${OUT_PATH}: ${result.length} zápasů, ${withVideo} s videem.`);
+  const seasons = [...new Set(result.map((m) => m.season))].sort();
+  console.log(`Uloženo ${OUT_PATH}: ${result.length} zápasů (sezóny: ${seasons.join(", ")}), ${withVideo} s videem.`);
 }
 
 main().catch((err) => {
