@@ -46,7 +46,15 @@
   .stripes{height:6px;width:100%;background:repeating-linear-gradient(135deg,var(--gold) 0 22px,#111 22px 44px);}
   header{position:sticky;top:0;z-index:50;background:rgba(59,61,63,0.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);}
   .nav{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;}
+  .brand{display:flex;align-items:center;gap:14px;}
   .brand-logo svg{height:40px;width:auto;display:block;}
+  .platform-note{
+    font-size:11px;color:var(--text-dim);
+    border-left:1px solid var(--line);padding-left:14px;
+    text-transform:uppercase;letter-spacing:0.4px;
+  }
+  .platform-note a{color:var(--text-dim);text-decoration:underline;text-underline-offset:2px;}
+  .platform-note a:hover{color:var(--gold);}
   nav.links{display:flex;align-items:center;gap:24px;font-size:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.3px;}
   nav.links a:hover{color:var(--gold);}
 
@@ -182,6 +190,7 @@
     .m-phase{text-align:left;}
     .m-action{justify-content:flex-start;}
     nav.links{display:none;}
+    .platform-note{display:none;}
   }
 </style>
 </head>
@@ -190,7 +199,8 @@
 <header>
   <div class="stripes"></div>
   <div class="nav">
-    <div class="brand-logo"><?xml version="1.0" encoding="UTF-8"?>
+    <div class="brand">
+      <div class="brand-logo"><?xml version="1.0" encoding="UTF-8"?>
 <svg id="Layer_1" xmlns="http://www.w3.org/2000/svg" version="1.1" viewBox="0 0 230.7 53.6">
   <!-- Generator: Adobe Illustrator 30.2.1, SVG Export Plug-In . SVG Version: 2.1.1 Build 1)  -->
   <defs>
@@ -228,6 +238,8 @@
     <path class="logo_st0" d="M198.7,20.9h3.3l1.8,11.4-1.8-1.8h8.4l-1.8,1.8,1.8-11.4h3.3l-2,12.6h-10.9l-2-12.6Z"/>
   </g>
 </svg></div>
+      <div class="platform-note">Běží na platformě <a href="https://www.tvcom.cz" target="_blank">tvcom</a></div>
+    </div>
     <nav class="links">
       <a href="https://www.srsni.com" target="_blank">Klubový web</a>
       <a href="https://www.nbl.basketball" target="_blank">NBL</a>
@@ -257,7 +269,6 @@
 
   <div class="cards-row" id="cardsRow"></div>
 
-  <div class="results-count" id="resultsCount"></div>
   <div class="match-list" id="matchList"></div>
 
 </main>
@@ -338,7 +349,7 @@ function renderHero(featured){
         <div class="hero-eyebrow">Právě se hraje · ${m.phase}</div>
         <div class="hero-tags">${tagOf(m)}</div>
         <h2 class="hero-opponent">${opponentOf(m)}</h2>
-        <div class="hero-meta">Výskok <b>${m.time}</b> · ${m.date}</div>
+        <div class="hero-meta">Rozskok <b>${m.time}</b> · ${m.date}</div>
         ${playable
           ? `<button class="btn-play-lg" type="button">${PLAY_ICON}Sledovat živě</button>`
           : `<span class="btn-soon">Přenos se spouští, chvíli strpení…</span>`}
@@ -356,7 +367,7 @@ function renderHero(featured){
         <div class="hero-eyebrow">${m.phase}</div>
         <div class="hero-tags">${tagOf(m)}</div>
         <h2 class="hero-opponent">${opponentOf(m)}</h2>
-        <div class="hero-meta">Výskok <b>${m.time}</b> · ${m.date}</div>
+        <div class="hero-meta">Rozskok <b>${m.time}</b> · ${m.date}</div>
         ${playable
           ? `<button class="btn-play-lg" type="button">${PLAY_ICON}Přehrát</button>`
           : `<span class="btn-soon">Zápas ještě nezačal</span>`}
@@ -454,9 +465,6 @@ function renderList(){
   const list = document.getElementById("matchList");
   const rest = window.__srsniListRest || [];
   const rows = rest.filter(passesFilter);
-
-  document.getElementById("resultsCount").textContent =
-    rows.length === rest.length ? `${rest.length} zápasů` : `${rows.length} z ${rest.length} zápasů`;
 
   if(rows.length === 0){
     list.innerHTML = `<div class="empty-box">Žádný zápas neodpovídá filtru.</div>`;
