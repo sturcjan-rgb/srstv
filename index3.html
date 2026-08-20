@@ -240,9 +240,6 @@
   <div class="section-title" id="heroSectionTitle">Poslední zápas</div>
   <div class="hero-match" id="heroMatch"></div>
 
-  <div class="section-title">Další zápasy</div>
-  <div class="cards-row" id="cardsRow"></div>
-
   <div class="section-title">Odehrané zápasy</div>
   <div class="season-tabs" id="seasonTabs"></div>
   <div class="filter-bar">
@@ -257,6 +254,9 @@
       <input type="text" id="searchInput" placeholder="Hledat soupeře…">
     </div>
   </div>
+
+  <div class="cards-row" id="cardsRow"></div>
+
   <div class="results-count" id="resultsCount"></div>
   <div class="match-list" id="matchList"></div>
 
@@ -380,7 +380,7 @@ function renderHero(featured){
     </div>`;
 }
 
-// Zápasy, ze kterých se plní "Další zápasy" (3 karty) a "Odehrané zápasy"
+// Zápasy, ze kterých se plní karty a seznam pod "Odehrané zápasy"
 // (seznam) — VŽDY jen odehrané (status "past"), nikdy budoucí, i kdyby to
 // znamenalo sáhnout do předchozí sezóny. Naplánované zápasy se ukazují
 // výhradně jednou, jako hlavní karta nahoře.
