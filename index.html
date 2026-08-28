@@ -125,7 +125,7 @@
   .card-action{margin-top:auto;}
 
   /* ---- tags shared ---- */
-  .tag-home, .tag-away{font-size:var(--fs-tag);font-weight:700;letter-spacing:0.5px;padding:3px 8px;border-radius:5px;display:inline-block;}
+  .tag-home, .tag-away, .tag-youtube{font-size:var(--fs-tag);font-weight:700;letter-spacing:0.5px;padding:3px 8px;border-radius:5px;display:inline-block;}
   .tag-home{background:rgba(255,210,26,0.16);color:var(--gold);}
   .tag-away{background:rgba(255,255,255,0.08);color:var(--text-dim);}
 
@@ -177,6 +177,9 @@
   .player-head h3{margin:0;font-size:15px;font-weight:700;}
   .player-head .close{cursor:pointer;color:var(--text-dim);font-size:20px;line-height:1;background:none;border:none;}
   .player-head .close:hover{color:var(--gold);}
+  /* Odznak zdroje (tvcom vs youtube) v seznamu */
+  .tag-youtube{background:rgba(255,0,0,0.16);color:#ff5a5a;}
+  .yt-title{font-family:"CoFo Peshka Black","Barlow Condensed",sans-serif;font-weight:900;}
   .video-wrap{position:relative;width:100%;padding-top:56.25%;background:#000;}
   .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
 
@@ -287,6 +290,8 @@
 
 <script>
 let matches = [];
+let youtube = [];      // syrová data z data/youtube.json
+let __youtube = [];    // normalizovaná videa se "start" (Date) a "type"
 
 const PLAY_ICON = `<svg viewBox="0 0 16 16"><path d="M4 2l10 6-10 6V2z"/></svg>`;
 const state = { season: null, loc: "all", phase: "all", q: "" };
@@ -440,7 +445,7 @@ function renderSeasonTabs(seasons){
 
 function uniquePhases(rest){
   const seen = new Set(); const order = [];
-  rest.forEach(m => { if(!seen.has(m.phase)){ seen.add(m.phase); order.push(m.phase); } });
+  rest.forEach(m => { if(m.phase && !seen.has(m.phase)){ seen.add(m.phase); order.push(m.phase); } });
   return order;
 }
 function populatePhaseSelect(rest){
@@ -453,6 +458,13 @@ function populatePhaseSelect(rest){
   });
 }
 function passesFilter(m){
+  if(m.type === "youtube"){
+    // Videa nemají "doma/venku" ani fázi zápasu — ukazujeme je jen
+    // v nefiltrovaném pohledu; hledání jede podle názvu videa.
+    if(state.loc !== "all" || state.phase !== "all") return false;
+    if(state.q && !m.title.toLowerCase().includes(state.q)) return false;
+    return true;
+  }
   if(state.loc !== "all" && m.us !== state.loc) return false;
   if(state.phase !== "all" && m.phase !== state.phase) return false;
   if(state.q){
@@ -471,6 +483,16 @@ function renderList(){
     return;
   }
   list.innerHTML = rows.map((m) => {
+    if(m.type === "youtube"){
+      const label = /ohlasy/i.test(m.title) ? "Ohlasy po utkání" : m.title;
+      return `
+      <div class="match playable" onclick="openYouTube(${m._yi})">
+        <div class="m-date"><b>${m.date}</b>${m.time}</div>
+        <div class="m-teams"><span class="tag-youtube">YOUTUBE</span><span class="yt-title">${label}</span></div>
+        <div class="m-phase">Video</div>
+        <div class="m-action"><button class="btn-play" type="button">${PLAY_ICON}Přehrát</button></div>
+      </div>`;
+    }
     const playable = !!m.embed;
     const action = playable
       ? `<button class="btn-play" type="button">${PLAY_ICON}Přehrát</button>`
@@ -492,7 +514,8 @@ function refreshSeasonView(){
   document.querySelectorAll(".season-tab").forEach(b => b.classList.toggle("active", b.dataset.season === state.season));
   const pool = pastPool(__withStatus, __featured);
   renderCards(pool);
-  window.__srsniListRest = pool.slice(3);
+  const ytForSeason = __youtube.filter(v => v.season === state.season);
+  window.__srsniListRest = [...pool.slice(3), ...ytForSeason].sort((a, b) => b.start - a.start);
   state.loc = "all"; state.phase = "all"; state.q = "";
   document.getElementById("searchInput").value = "";
   document.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b.dataset.loc === "all"));
@@ -505,6 +528,13 @@ function openPlayer(i){
   if(!m.embed) return;
   document.getElementById("playerTitle").textContent = `${m.home} – ${m.away} · ${m.date}`;
   document.getElementById("playerFrame").src = `https://embed.tvcom.cz/${m.embed}/`;
+  document.getElementById("overlay").classList.add("open");
+}
+function openYouTube(i){
+  const v = __youtube[i];
+  if(!v) return;
+  document.getElementById("playerTitle").textContent = v.title;
+  document.getElementById("playerFrame").src = `https://www.youtube.com/embed/${v.videoId}?autoplay=1`;
   document.getElementById("overlay").classList.add("open");
 }
 function closePlayer(){
@@ -537,8 +567,20 @@ async function loadMatches(){
     return;
   }
 
+  // Videa z YouTube jsou volitelná — když se soubor nenačte (třeba ještě
+  // neexistuje nebo RSS zrovna 404uje), web pojede dál jen se zápasy.
+  try {
+    const yres = await fetch("data/youtube.json", { cache: "no-store" });
+    if(yres.ok) youtube = await yres.json();
+  } catch(err) {
+    console.warn("Videa z YouTube se nepodařilo načíst (pokračuji bez nich):", err);
+  }
+  __youtube = youtube.map((v, i) => ({
+    ...v, type: "youtube", _yi: i, start: new Date(v.published),
+  }));
+
   const now = new Date();
-  __withStatus = matches.map((m, i) => ({ ...m, _i: i, start: parseStart(m), status: statusOf(m, now) }));
+  __withStatus = matches.map((m, i) => ({ ...m, _i: i, type: "match", start: parseStart(m), status: statusOf(m, now) }));
 
   __featured = pickFeatured(__withStatus);
   renderHero(__featured);
@@ -546,7 +588,7 @@ async function loadMatches(){
   // Sezóny k výběru — nejnovější první. Výchozí = sezóna posledního
   // odehraného zápasu (ne kalendářní "dnešek", protože nová sezóna na
   // startu žádné odehrané zápasy ještě nemá).
-  const seasons = [...new Set(__withStatus.map(m => m.season))].sort().reverse();
+  const seasons = [...new Set([...__withStatus, ...__youtube].map(x => x.season))].sort().reverse();
   const mostRecentPast = __withStatus.filter(m => m.status === "past").sort((a, b) => b.start - a.start)[0];
   state.season = mostRecentPast ? mostRecentPast.season : seasons[0];
 
