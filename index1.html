@@ -21,12 +21,9 @@
     --card-hover:#212124;
     --line:#2a2a2e;
     --gold:#ffd21a;
-    --gold-ink:#ffd21a;
     --gold-dim:#8a6f22;
     --text:#f2f2f0;
     --text-dim:#9a9a9e;
-    --header-bg:rgba(59,61,63,0.92);
-    --thumb-icon:#141414;
 
     --fs-date:13px;
     --fs-date-day:14px;
@@ -35,19 +32,6 @@
     --fs-tag:12.5px;
     --fs-btn:14px;
     --radius:10px;
-  }
-  html[data-theme="light"]{
-    --bg:#f1f1ee;
-    --card:#ffffff;
-    --card-hover:#f6f4ee;
-    --line:#e3e2dd;
-    --gold:#ffd21a;
-    --gold-ink:#a9821c;
-    --gold-dim:#d9b53a;
-    --text:#161616;
-    --text-dim:#6c6c70;
-    --header-bg:rgba(241,241,238,0.92);
-    --thumb-icon:#141414;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
@@ -60,7 +44,7 @@
   a{color:inherit;text-decoration:none;}
 
   .stripes{height:6px;width:100%;background:repeating-linear-gradient(135deg,var(--gold) 0 22px,#111 22px 44px);}
-  header{position:sticky;top:0;z-index:50;background:var(--header-bg);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);}
+  header{position:sticky;top:0;z-index:50;background:rgba(59,61,63,0.92);backdrop-filter:blur(6px);border-bottom:1px solid var(--line);}
   .nav{max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;padding:14px 20px;}
   .brand{display:flex;align-items:center;gap:14px;}
   .brand-logo svg{height:40px;width:auto;display:block;}
@@ -70,23 +54,9 @@
     text-transform:uppercase;letter-spacing:0.4px;
   }
   .platform-note a{color:var(--text-dim);text-decoration:underline;text-underline-offset:2px;}
-  .platform-note a:hover{color:var(--gold-ink);}
+  .platform-note a:hover{color:var(--gold);}
   nav.links{display:flex;align-items:center;gap:24px;font-size:14px;color:var(--text-dim);text-transform:uppercase;letter-spacing:0.3px;}
-  nav.links a:hover{color:var(--gold-ink);}
-  .nav-right{display:flex;align-items:center;gap:22px;}
-
-  .theme-toggle{
-    display:inline-flex;align-items:center;justify-content:center;
-    width:38px;height:38px;border-radius:10px;
-    background:var(--card);border:1px solid var(--line);
-    color:var(--text-dim);cursor:pointer;padding:0;
-    transition:color .15s ease,border-color .15s ease,background .15s ease;
-  }
-  .theme-toggle:hover{color:var(--gold-ink);border-color:var(--gold-dim);}
-  .theme-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;}
-  .theme-toggle .icon-sun{display:none;}
-  html[data-theme="light"] .theme-toggle .icon-sun{display:block;}
-  html[data-theme="light"] .theme-toggle .icon-moon{display:none;}
+  nav.links a:hover{color:var(--gold);}
 
   main{max-width:1100px;margin:0 auto;padding:28px 20px 80px;}
 
@@ -156,7 +126,7 @@
 
   /* ---- tags shared ---- */
   .tag-home, .tag-away, .tag-youtube{font-size:var(--fs-tag);font-weight:700;letter-spacing:0.5px;padding:3px 8px;border-radius:5px;display:inline-block;}
-  .tag-home{background:rgba(255,210,26,0.16);color:var(--gold-ink);}
+  .tag-home{background:rgba(255,210,26,0.16);color:var(--gold);}
   .tag-away{background:rgba(255,255,255,0.08);color:var(--text-dim);}
 
   .btn-play{display:inline-flex;align-items:center;gap:7px;background:var(--gold);color:#141414;font-weight:700;font-size:var(--fs-btn);padding:8px 14px;border-radius:8px;border:none;font-family:inherit;}
@@ -185,16 +155,23 @@
   .search-wrap input::placeholder{color:var(--text-dim);}
   .results-count{font-size:12px;color:var(--text-dim);margin:-4px 0 14px;}
 
-  .match-list{display:flex;flex-direction:column;gap:8px;}
-  .match{display:grid;grid-template-columns:100px 1fr 110px 140px;align-items:center;gap:16px;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:12px 16px;transition:background .15s ease, border-color .15s ease;}
+  .match-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;}
+  .match{
+    display:flex;flex-direction:column;justify-content:space-between;gap:22px;min-height:150px;
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;
+    transition:background .15s ease, border-color .15s ease;
+  }
   .match.playable{cursor:pointer;}
   .match.playable:hover{background:var(--card-hover);border-color:var(--gold-dim);}
+  .m-top{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+  .m-tags{display:flex;align-items:center;gap:6px;flex-wrap:wrap;}
+  .m-bottom{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;}
+  .m-bottom-info{display:flex;flex-direction:column;gap:5px;min-width:0;}
   .m-date{font-size:var(--fs-date);color:var(--text-dim);line-height:1.3;}
-  .m-date b{display:block;color:var(--text);font-size:var(--fs-date-day);}
-  .m-teams{font-size:var(--fs-teams);font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  .opp-name{font-family:"CoFo Peshka Black","Barlow Condensed",sans-serif;font-weight:900;}
-  .m-phase{font-size:var(--fs-phase);color:var(--text-dim);text-align:right;}
-  .m-action{display:flex;justify-content:flex-end;}
+  .m-date b{color:var(--text);}
+  .opp-name{font-family:"CoFo Peshka Black","Barlow Condensed",sans-serif;font-weight:900;font-size:18px;line-height:1.15;}
+  .m-phase{font-size:var(--fs-phase);color:var(--text-dim);}
+  .m-action{display:flex;justify-content:flex-end;flex-shrink:0;}
 
   .empty-box{border:1px dashed var(--line);border-radius:12px;padding:24px;text-align:center;color:var(--text-dim);font-size:14px;background:var(--card);}
 
@@ -206,10 +183,9 @@
   .player-head{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:var(--card);}
   .player-head h3{margin:0;font-size:15px;font-weight:700;}
   .player-head .close{cursor:pointer;color:var(--text-dim);font-size:20px;line-height:1;background:none;border:none;}
-  .player-head .close:hover{color:var(--gold-ink);}
+  .player-head .close:hover{color:var(--gold);}
   /* Odznak zdroje (tvcom vs youtube) v seznamu */
   .tag-youtube{background:rgba(255,0,0,0.16);color:#ff5a5a;}
-  .yt-title{font-family:"CoFo Peshka Black","Barlow Condensed",sans-serif;font-weight:900;}
   .video-wrap{position:relative;width:100%;padding-top:56.25%;background:#000;}
   .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
 
@@ -219,24 +195,11 @@
     .cards-row{grid-template-columns:1fr;}
   }
   @media (max-width:640px){
-    .match{grid-template-columns:1fr;gap:6px;text-align:left;}
-    .m-phase{text-align:left;}
-    .m-action{justify-content:flex-start;}
+    .match-list{grid-template-columns:1fr;}
     nav.links{display:none;}
     .platform-note{display:none;}
   }
 </style>
-<script>
-  // Aplikuje uložený motiv co nejdřív, aby stránka nebliknula tmavou/světlou.
-  (function(){
-    var t;
-    try{ t = localStorage.getItem("srstv-theme"); }catch(e){}
-    if(!t){
-      t = (window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches) ? "light" : "dark";
-    }
-    if(t === "light") document.documentElement.setAttribute("data-theme","light");
-  })();
-</script>
 </head>
 <body>
 
@@ -284,16 +247,10 @@
 </svg></div>
       <div class="platform-note">Běží na platformě <a href="https://www.tvcom.cz" target="_blank">tvcom</a></div>
     </div>
-    <div class="nav-right">
-      <nav class="links">
-        <a href="https://www.srsni.com" target="_blank">Klubový web</a>
-        <a href="https://www.nbl.basketball" target="_blank">NBL</a>
-      </nav>
-      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Přepnout světlý režim" title="Přepnout světlý / tmavý režim">
-        <svg class="icon-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-        <svg class="icon-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><line x1="12" y1="2.5" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="21.5"/><line x1="2.5" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="21.5" y2="12"/><line x1="4.9" y1="4.9" x2="6.7" y2="6.7"/><line x1="17.3" y1="17.3" x2="19.1" y2="19.1"/><line x1="4.9" y1="19.1" x2="6.7" y2="17.3"/><line x1="17.3" y1="6.7" x2="19.1" y2="4.9"/></svg>
-      </button>
-    </div>
+    <nav class="links">
+      <a href="https://www.srsni.com" target="_blank">Klubový web</a>
+      <a href="https://www.nbl.basketball" target="_blank">NBL</a>
+    </nav>
   </div>
 </header>
 
@@ -336,28 +293,6 @@
 </div>
 
 <script>
-// ---- přepínač světlý / tmavý režim ----
-(function(){
-  const btn = document.getElementById("themeToggle");
-  if(!btn) return;
-  function setLabel(){
-    const light = document.documentElement.getAttribute("data-theme") === "light";
-    btn.setAttribute("aria-label", light ? "Přepnout tmavý režim" : "Přepnout světlý režim");
-  }
-  setLabel();
-  btn.addEventListener("click", function(){
-    const light = document.documentElement.getAttribute("data-theme") === "light";
-    if(light){
-      document.documentElement.removeAttribute("data-theme");
-      try{ localStorage.setItem("srstv-theme","dark"); }catch(e){}
-    }else{
-      document.documentElement.setAttribute("data-theme","light");
-      try{ localStorage.setItem("srstv-theme","light"); }catch(e){}
-    }
-    setLabel();
-  });
-})();
-
 let matches = [];
 let youtube = [];      // syrová data z data/youtube.json
 let __youtube = [];    // normalizovaná videa se "start" (Date) a "type"
@@ -556,10 +491,17 @@ function renderList(){
       const label = /ohlasy/i.test(m.title) ? "Ohlasy po utkání" : m.title;
       return `
       <div class="match playable" onclick="openYouTube(${m._yi})">
-        <div class="m-date"><b>${m.date}</b>${m.time}</div>
-        <div class="m-teams"><span class="tag-youtube">YOUTUBE</span><span class="yt-title">${label}</span></div>
-        <div class="m-phase">Video</div>
-        <div class="m-action"><button class="btn-play" type="button">${PLAY_ICON}Přehrát</button></div>
+        <div class="m-top">
+          <div class="m-tags"><span class="tag-youtube">YOUTUBE</span></div>
+          <span class="m-phase">Video</span>
+        </div>
+        <div class="m-bottom">
+          <div class="m-bottom-info">
+            <span class="opp-name">${label}</span>
+            <span class="m-date">${m.date} · ${m.time}</span>
+          </div>
+          <div class="m-action"><button class="btn-play" type="button">${PLAY_ICON}Přehrát</button></div>
+        </div>
       </div>`;
     }
     const playable = !!m.embed;
@@ -568,10 +510,17 @@ function renderList(){
       : `<span class="btn-soon">bez videa</span>`;
     return `
       <div class="match ${playable ? 'playable' : ''}" ${playable ? `onclick="openPlayer(${m._i})"` : ""}>
-        <div class="m-date"><b>${m.date}</b>${m.time}</div>
-        <div class="m-teams">${tagOf(m)}<span class="opp-name">${opponentOf(m)}</span></div>
-        <div class="m-phase">${m.phase}</div>
-        <div class="m-action">${action}</div>
+        <div class="m-top">
+          <div class="m-tags">${tagOf(m)}</div>
+          <span class="m-phase">${m.phase}</span>
+        </div>
+        <div class="m-bottom">
+          <div class="m-bottom-info">
+            <span class="opp-name">${opponentOf(m)}</span>
+            <span class="m-date"><b>${m.date}</b> · ${m.time}</span>
+          </div>
+          <div class="m-action">${action}</div>
+        </div>
       </div>`;
   }).join("");
 }
