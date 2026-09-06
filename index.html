@@ -179,9 +179,29 @@
   .player-head .close:hover{color:var(--gold);}
   /* Odznak zdroje (tvcom vs youtube) v seznamu */
   .tag-youtube{background:rgba(255,0,0,0.16);color:#ff5a5a;}
-  .yt-title{font-family:"CoFo Peshka Black","Barlow Condensed",sans-serif;font-weight:900;}
   .video-wrap{position:relative;width:100%;padding-top:56.25%;background:#000;}
   .video-wrap iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;}
+
+  /* ---- mřížka videí (YouTube) ---- */
+  .video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;}
+  .video-card{
+    background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    overflow:hidden;cursor:pointer;transition:background .15s ease, border-color .15s ease;
+  }
+  .video-card:hover{background:var(--card-hover);border-color:var(--gold-dim);}
+  .video-thumb{
+    position:relative;min-height:120px;
+    background:
+      radial-gradient(120% 140% at 20% 15%, rgba(255,0,0,0.14) 0%, transparent 55%),
+      repeating-linear-gradient(135deg, rgba(255,255,255,0.03) 0 26px, transparent 26px 52px),
+      #101012;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .video-thumb .play-badge{width:48px;height:48px;}
+  .video-thumb .play-badge svg{width:18px;height:18px;margin-left:2px;}
+  .video-info{padding:12px 14px;display:flex;flex-direction:column;gap:6px;}
+  .video-title{font-family:"CoFo Peshka Black","Barlow Condensed",sans-serif;font-weight:900;font-size:15px;line-height:1.2;color:var(--text);}
+  .video-date{font-size:var(--fs-date);color:var(--text-dim);}
 
   @media (max-width:800px){
     .hero-match{grid-template-columns:1fr;}
@@ -273,6 +293,9 @@
   <div class="cards-row" id="cardsRow"></div>
 
   <div class="match-list" id="matchList"></div>
+
+  <div class="section-title" id="videoSectionTitle" style="display:none;">Videa</div>
+  <div class="video-grid" id="videoGrid"></div>
 
 </main>
 
@@ -458,19 +481,16 @@ function populatePhaseSelect(rest){
   });
 }
 function passesFilter(m){
-  if(m.type === "youtube"){
-    // Videa nemají "doma/venku" ani fázi zápasu — ukazujeme je jen
-    // v nefiltrovaném pohledu; hledání jede podle názvu videa.
-    if(state.loc !== "all" || state.phase !== "all") return false;
-    if(state.q && !m.title.toLowerCase().includes(state.q)) return false;
-    return true;
-  }
   if(state.loc !== "all" && m.us !== state.loc) return false;
   if(state.phase !== "all" && m.phase !== state.phase) return false;
   if(state.q){
     const opp = opponentOf(m).toLowerCase();
     if(!opp.includes(state.q)) return false;
   }
+  return true;
+}
+function passesVideoFilter(v){
+  if(state.q && !v.title.toLowerCase().includes(state.q)) return false;
   return true;
 }
 function renderList(){
@@ -483,16 +503,6 @@ function renderList(){
     return;
   }
   list.innerHTML = rows.map((m) => {
-    if(m.type === "youtube"){
-      const label = /ohlasy/i.test(m.title) ? "Ohlasy po utkání" : m.title;
-      return `
-      <div class="match playable" onclick="openYouTube(${m._yi})">
-        <div class="m-date"><b>${m.date}</b>${m.time}</div>
-        <div class="m-teams"><span class="tag-youtube">YOUTUBE</span><span class="yt-title">${label}</span></div>
-        <div class="m-phase">Video</div>
-        <div class="m-action"><button class="btn-play" type="button">${PLAY_ICON}Přehrát</button></div>
-      </div>`;
-    }
     const playable = !!m.embed;
     const action = playable
       ? `<button class="btn-play" type="button">${PLAY_ICON}Přehrát</button>`
@@ -507,6 +517,37 @@ function renderList(){
   }).join("");
 }
 
+function renderVideoGrid(){
+  const grid = document.getElementById("videoGrid");
+  const title = document.getElementById("videoSectionTitle");
+  const all = window.__srsniVideoRest || [];
+
+  if(all.length === 0){
+    title.style.display = "none";
+    grid.innerHTML = "";
+    return;
+  }
+  title.style.display = "";
+
+  const videos = all.filter(passesVideoFilter);
+  if(videos.length === 0){
+    grid.innerHTML = `<div class="empty-box" style="grid-column:1/-1;">Žádné video neodpovídá hledání.</div>`;
+    return;
+  }
+  grid.innerHTML = videos.map((v) => {
+    const label = /ohlasy/i.test(v.title) ? "Ohlasy po utkání" : v.title;
+    return `
+      <div class="video-card" onclick="openYouTube(${v._yi})">
+        <div class="video-thumb"><div class="play-badge">${PLAY_ICON}</div></div>
+        <div class="video-info">
+          <span class="tag-youtube">YOUTUBE</span>
+          <div class="video-title">${label}</div>
+          <div class="video-date">${v.date} · ${v.time}</div>
+        </div>
+      </div>`;
+  }).join("");
+}
+
 let __withStatus = [];
 let __featured = null;
 
@@ -514,13 +555,14 @@ function refreshSeasonView(){
   document.querySelectorAll(".season-tab").forEach(b => b.classList.toggle("active", b.dataset.season === state.season));
   const pool = pastPool(__withStatus, __featured);
   renderCards(pool);
-  const ytForSeason = __youtube.filter(v => v.season === state.season);
-  window.__srsniListRest = [...pool.slice(3), ...ytForSeason].sort((a, b) => b.start - a.start);
+  window.__srsniListRest = pool.slice(3).sort((a, b) => b.start - a.start);
+  window.__srsniVideoRest = __youtube.filter(v => v.season === state.season).sort((a, b) => b.start - a.start);
   state.loc = "all"; state.phase = "all"; state.q = "";
   document.getElementById("searchInput").value = "";
   document.querySelectorAll(".filter-btn").forEach(b => b.classList.toggle("active", b.dataset.loc === "all"));
   populatePhaseSelect(window.__srsniListRest);
   renderList();
+  renderVideoGrid();
 }
 
 function openPlayer(i){
@@ -552,7 +594,11 @@ document.querySelectorAll(".filter-btn").forEach(btn => {
   });
 });
 document.getElementById("phaseSelect").addEventListener("change", (e) => { state.phase = e.target.value; renderList(); });
-document.getElementById("searchInput").addEventListener("input", (e) => { state.q = e.target.value.trim().toLowerCase(); renderList(); });
+document.getElementById("searchInput").addEventListener("input", (e) => {
+  state.q = e.target.value.trim().toLowerCase();
+  renderList();
+  renderVideoGrid();
+});
 
 async function loadMatches(){
   const heroEl = document.getElementById("heroMatch");
